@@ -1,0 +1,68 @@
+name: city1551
+
+# Раз в 30 минут: обращения 1551 + бюветы → компактные файлы в ветке `data`.
+on:
+  schedule:
+    - cron: "17,47 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "relay/**"
+      - ".github/workflows/city1551.yml"
+
+permissions:
+  contents: write   # публикация ветки data
+  actions: write    # продление расписания (см. последний шаг)
+
+concurrency:
+  group: city1551
+  cancel-in-progress: false
+
+jobs:
+  relay:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tests
+        run: python3 -m unittest discover -s relay -v
+
+      - name: Previous data
+        run: |
+          mkdir -p out
+          if git fetch --depth=1 origin data:refs/remotes/origin/data; then
+            git archive origin/data | tar -x -C out
+          else
+            echo "Ветки data ещё нет — первый запуск"
+          fi
+
+      - name: Build
+        run: python3 relay/city1551.py --out out
+
+      - name: Publish to branch data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          export GIT_INDEX_FILE="$RUNNER_TEMP/data.index"
+          rm -f "$GIT_INDEX_FILE"
+          git --work-tree=out add -A .
+          tree=$(git write-tree)
+          if git rev-parse -q --verify origin/data >/dev/null && \
+             [ "$tree" = "$(git rev-parse 'origin/data^{tree}')" ]; then
+            echo "Без изменений"
+            exit 0
+          fi
+          latest=$(python3 -c "import json;print(json.load(open('out/1551/meta.json'))['source_latest'])")
+          # одна коммит-«фотография» без истории: ветка не растёт
+          commit=$(git commit-tree "$tree" -m "1551: данные по $latest")
+          git push -f origin "$commit:refs/heads/data"
+
+      - name: Keep schedule alive
+        # GitHub отключает расписание в публичном репозитории после 60 дней без активности.
+        if: github.event_name == 'schedule'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/city1551.yml/enable"
