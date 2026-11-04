@@ -300,15 +300,23 @@ def build_streets(out: Path, recs: list[dict]) -> tuple[list[dict], dict[str, st
     return index, slugs
 
 
-def _norm_words(s: str) -> str:
+# тип улицы не учитываем: в боте «бул. Дарницький», в 1551 — «бульв. Дарницький»
+STREET_TYPES = {"вул", "вулиця", "бул", "бульв", "бульвар", "просп", "проспект", "пров", "провулок",
+                "пл", "площа", "шосе", "узв", "узвіз", "наб", "набережна", "туп", "тупик", "проїзд", "алея"}
+
+
+def street_words(s: str) -> set[str]:
     s = unicodedata.normalize("NFC", s.lower())
     s = re.sub(r"[’'`ʼ]", "", s)
-    return " " + re.sub(r"[^\w]+", " ", s).strip() + " "
+    return {w for w in re.split(r"[^\w]+", s) if w and w not in STREET_TYPES}
 
 
 def street_matches(name: str, pattern: str) -> bool:
-    """Целые слова pattern встречаются в name подряд (без учёта регистра и апострофов)."""
-    return _norm_words(pattern) in _norm_words(name)
+    """Все слова pattern есть в name целиком — в любом порядке, без учёта регистра,
+    апострофов и типа улицы. «вул. Малишка Андрія» находит «вул. Андрія Малишка»,
+    «Солов'яненка» — «вул. Солов’яненка Анатолія (Бойченка Олександра)»."""
+    want = street_words(pattern)
+    return bool(want) and want <= street_words(name)
 
 
 def load_areas(path: Path) -> dict:

@@ -139,6 +139,13 @@ class RunTest(unittest.TestCase):
         self.assertTrue(c.street_matches("вул. Солов’яненка Анатолія (Бойченка Олександра)", "Солов'яненка"))
         self.assertTrue(c.street_matches("вул. Князя Романа Мстиславича (Жмаченка Генерала)", "Романа Мстиславича"))
         self.assertFalse(c.street_matches("вул. Соловцова Миколи", "Солов'яненка"))
+        # названия как в боте соседей: другой порядок слов и тип улицы
+        self.assertTrue(c.street_matches("вул. Андрія Малишка", "вул. Малишка Андрія"))
+        self.assertTrue(c.street_matches("бульв. Дарницький", "бул. Дарницький"))
+        self.assertTrue(c.street_matches("вул. Шалетт Міста", "вул. Шалетт міста"))
+        self.assertTrue(c.street_matches("вул. Солов’яненка Анатолія (Бойченка Олександра)",
+                                         "вул. Солов’яненка Анатолія"))
+        self.assertFalse(c.street_matches("вул. Андрія Малишка", "вул."))
 
     def test_areas_file_valid(self):
         areas = c.load_areas(Path(c.__file__).with_name("areas.json"))
