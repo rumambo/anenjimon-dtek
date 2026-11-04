@@ -133,6 +133,15 @@ class RunTest(unittest.TestCase):
         self.assertEqual(a["items"][0]["h"], "21-А")
         self.assertIn("вул. Солов’яненка Анатолія (Бойченка Олександра)", {i["s"] for i in a["items"]})
 
+    def test_area_buvets(self):
+        meta = c.run(self.out, self.now, self.src, BUVETS, {"m": {"streets": ["просп. Миру"]}})
+        a = json.loads((self.out / "1551/areas/m-recent.json").read_text(encoding="utf-8"))
+        self.assertEqual(a["source_latest"], meta["source_latest"])
+        self.assertEqual(len(a["buvets"]), c.BUVET_MAX)
+        self.assertTrue(all(b["on_street"] for b in a["buvets"]))
+        self.assertTrue(a["buvets"][0]["generator"])  # с генератором — первыми
+        self.assertEqual(c.area_buvets({"streets": ["вул. Нова"]}, []), [])
+
     def test_street_matching(self):
         self.assertTrue(c.street_matches("бульв. Дарницький", "Дарницький"))
         self.assertFalse(c.street_matches("вул. Ново-Дарницька", "Дарницький"))

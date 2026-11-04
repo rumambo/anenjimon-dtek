@@ -29,6 +29,7 @@ import datetime as dt
 import gzip
 import io
 import json
+import math
 import os
 import re
 import sys
@@ -62,6 +63,8 @@ HOT_HOURS = 6         # окно «горячих» улиц
 HOT_MIN = 3           # минимум обращений на улице за окно, чтобы попасть в «горячие»
 HOT_TOP = 30          # сколько «горячих» улиц на категорию
 RECENT_HOURS = 48     # окно лёгкого файла массива
+BUVET_KM = 1.5        # бюветы массива: радиус от центра, км
+BUVET_MAX = 5
 REFRESH_PREV_DAYS = 2 # в первые дни месяца перекачиваем прошлый месяц (поздние записи)
 
 # Категории 1551 → короткий код. Для «pipes» берём только подкатегории из PIPES_PREFIXES.
@@ -330,8 +333,41 @@ def load_areas(path: Path) -> dict:
     return data
 
 
+def _km(lat1, lon1, lat2, lon2) -> float:
+    return math.hypot((lat1 - lat2) * 111.2, (lon1 - lon2) * 111.2 * math.cos(math.radians((lat1 + lat2) / 2)))
+
+
+def area_buvets(a: dict, buvets: list[dict]) -> list[dict]:
+    """Бюветы массива: на его улицах и в радиусе BUVET_KM от центра (центр — из areas.json
+    или среднее бюветов на его улицах), рабочие, ближние первыми, не больше BUVET_MAX."""
+    def on_street(b):
+        bw = street_words(b["street"])
+        return any(bw and (street_words(p) <= bw or bw <= street_words(p)) for p in a["streets"])
+
+    own = [b for b in buvets if on_street(b)]
+    if a.get("center"):
+        clat, clon = a["center"]
+    elif own:
+        clat, clon = sum(b["lat"] for b in own) / len(own), sum(b["lon"] for b in own) / len(own)
+    else:
+        return []
+    out = []
+    for b in buvets:
+        d = _km(clat, clon, b["lat"], b["lon"])
+        if b["works"] and (b in own or d <= BUVET_KM):
+            it = {k: b[k] for k in ("street", "house", "lat", "lon", "generator") if b.get(k) is not None}
+            it["on_street"] = b in own
+            it["km"] = round(d, 1)
+            if b.get("complaints_7d"):
+                it["complaints_7d"] = b["complaints_7d"]
+            out.append(it)
+    out.sort(key=lambda x: (not x["on_street"], not x["generator"], x["km"]))
+    return out[:BUVET_MAX]
+
+
 def build_areas(out: Path, recs: list[dict], areas: dict, slugs: dict[str, str],
-                now: dt.datetime) -> dict:
+                now: dt.datetime, source_latest: str | None = None,
+                buvets: list[dict] | None = None) -> dict:
     """1551/areas/<slug>.json — все обращения по улицам массива одним файлом."""
     adir = out / "1551" / "areas"
     adir.mkdir(parents=True, exist_ok=True)
@@ -353,6 +389,8 @@ def build_areas(out: Path, recs: list[dict], areas: dict, slugs: dict[str, str],
         head = {
             "area": slug,
             "title": a.get("title") or slug,
+            "source_latest": source_latest,
+            "buvets": area_buvets(a, buvets or []),
             "streets": [{"name": n, "pattern": matched[n], "file": f"streets/{slugs[n]}.json"}
                         for n in sorted(matched)],
         }
@@ -421,7 +459,7 @@ def house_root(h: str | None) -> str:
     return norm_space(h).lower().replace(" ", "")
 
 
-def build_buvets(out: Path, csv_bytes: bytes | None, recs: list[dict], now: dt.datetime) -> int | None:
+def build_buvets(out: Path, csv_bytes: bytes | None, recs: list[dict], now: dt.datetime) -> list[dict] | None:
     path = out / "buvets" / "buvets.json"
     if csv_bytes is None:
         if not path.exists():
@@ -473,7 +511,7 @@ def build_buvets(out: Path, csv_bytes: bytes | None, recs: list[dict], now: dt.d
         "source_fetched": source_updated,
         "items": rows,
     })
-    return len(rows)
+    return rows
 
 
 def _int_or_none(v):
@@ -542,20 +580,20 @@ def run(out: Path, now: dt.datetime, source_dir: Path | None = None,
         if parse_t(r["t"]) >= since:
             window.append(r)
 
-    index, slugs = build_streets(out, window)
-    write_json(out / "1551" / "index.json", {"streets": index})
-    area_summary = build_areas(out, window, areas or {}, slugs, now)
-    write_json(out / "1551" / "city.json", build_city(window, now))
-
     if buvets_csv == "fetch":
         try:
             buvets_csv = http_get(BUVETS_CSV, timeout=60)
         except Exception as e:  # noqa: BLE001
             print(f"  бюветы недоступны, оставляю прошлый список: {e}", file=sys.stderr)
             buvets_csv = None
-    n_buvets = build_buvets(out, buvets_csv, window, now)
+    buvets = build_buvets(out, buvets_csv, window, now)
 
     latest = max((r["t"] for r in cur_recs), default=None) or max((r["t"] for r in prev_recs), default=None)
+    index, slugs = build_streets(out, window)
+    write_json(out / "1551" / "index.json", {"streets": index})
+    area_summary = build_areas(out, window, areas or {}, slugs, now, latest, buvets)
+    write_json(out / "1551" / "city.json", build_city(window, now))
+
     months = {}
     for p in sorted(mdir.glob("*.json.gz")):
         recs = read_month(p)
@@ -571,7 +609,7 @@ def run(out: Path, now: dt.datetime, source_dir: Path | None = None,
         "kinds": dict(sorted(Counter(r["k"] for r in window).items())),
         "months": months,
         "areas": area_summary,
-        "buvets": n_buvets,
+        "buvets": len(buvets) if buvets is not None else None,
         "source": "КБУ «Контактний центр міста Києва» (1551), data.gov.ua, CC BY 4.0",
     }
     write_json(out / "1551" / "meta.json", meta, pretty=True)
