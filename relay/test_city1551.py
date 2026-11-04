@@ -110,6 +110,40 @@ class RunTest(unittest.TestCase):
         self.assertTrue(b3["generator"])
         self.assertTrue((self.out / "1551/months/2026-10.json.gz").exists())
 
+    def test_area(self):
+        extra = json.loads((self.src / "2026-11.json").read_text(encoding="utf-8")) + [
+            row("a1", "2026-11-04T10:00Z", "Холодне водопостачання", "Відсутність ХВП",
+                street="вул. Солов’яненка Анатолія (Бойченка Олександра)", house="4"),
+            row("a2", "2026-11-04T11:00Z", "Ліфт", "Не працює пасажирський ліфт",
+                street="вул. Ново-Дарницька", house="1"),
+        ]
+        (self.src / "2026-11.json").write_text(json.dumps(extra, ensure_ascii=False), encoding="utf-8")
+        areas = {"pb": {"title": "Масив", "streets": ["Андрія Малишка", "Солов'яненка", "Дарницький", "Юності"]}}
+        meta = c.run(self.out, self.now, self.src, BUVETS, areas)
+        self.assertEqual(meta["areas"]["pb"], {"file": "areas/pb.json", "recent": "areas/pb-recent.json",
+                                               "streets": 2, "n": 5, "n_recent": 4,
+                                               "unmatched": ["Дарницький", "Юності"]})
+        r = json.loads((self.out / "1551/areas/pb-recent.json").read_text(encoding="utf-8"))
+        self.assertEqual(r["hours"], 48)
+        self.assertEqual(len(r["items"]), 4)  # 30.10 уже не входит
+        a = json.loads((self.out / "1551/areas/pb.json").read_text(encoding="utf-8"))
+        self.assertEqual([s["name"] for s in a["streets"]],
+                         ["вул. Андрія Малишка", "вул. Солов’яненка Анатолія (Бойченка Олександра)"])
+        self.assertEqual(a["items"][0]["s"], "вул. Андрія Малишка")
+        self.assertEqual(a["items"][0]["h"], "21-А")
+        self.assertIn("вул. Солов’яненка Анатолія (Бойченка Олександра)", {i["s"] for i in a["items"]})
+
+    def test_street_matching(self):
+        self.assertTrue(c.street_matches("бульв. Дарницький", "Дарницький"))
+        self.assertFalse(c.street_matches("вул. Ново-Дарницька", "Дарницький"))
+        self.assertTrue(c.street_matches("вул. Солов’яненка Анатолія (Бойченка Олександра)", "Солов'яненка"))
+        self.assertTrue(c.street_matches("вул. Князя Романа Мстиславича (Жмаченка Генерала)", "Романа Мстиславича"))
+        self.assertFalse(c.street_matches("вул. Соловцова Миколи", "Солов'яненка"))
+
+    def test_areas_file_valid(self):
+        areas = c.load_areas(Path(c.__file__).with_name("areas.json"))
+        self.assertEqual(len(areas["pivnichno-brovarskyi"]["streets"]), 8)
+
     def test_idempotent_and_stale_cleanup(self):
         c.run(self.out, self.now, self.src, BUVETS)
         before = {p: p.read_bytes() for p in (self.out / "1551/streets").glob("*.json")}

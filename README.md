@@ -11,6 +11,8 @@
 ```
 https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/1551/meta.json
 https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/1551/index.json
+https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/1551/areas/pivnichno-brovarskyi-recent.json
+https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/1551/areas/pivnichno-brovarskyi.json
 https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/1551/streets/vul-andriia-malyshka.json
 https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/1551/city.json
 https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/buvets/buvets.json
@@ -68,6 +70,21 @@ raw.githubusercontent.com отдаёт `ETag`: запрос с `If-None-Match` �
   {"t":"2026-11-04T08:26Z","k":"lift","c":"Не працює пасажирський ліфт","h":"31"}]}
 ```
 `k` — код категории, `c` — подкатегория 1551, `h` — дом (может быть `null`), `b` — корпус (если есть).
+
+**`1551/areas/<slug>.json`** — все улицы массива одним файлом за 31 день (~180 КБ),
+и **`1551/areas/<slug>-recent.json`** — то же за последние 48 часов (~30 КБ, для опроса раз в 30 минут).
+Массивы задаются в [`relay/areas.json`](relay/areas.json): `{slug: {title, streets: [часть названия]}}`.
+Часть названия сравнивается целыми словами без учёта регистра и апострофов, поэтому «Солов'яненка» находит
+«вул. Солов’яненка Анатолія (Бойченка Олександра)», а «Дарницький» не цепляет «вул. Ново-Дарницька».
+
+```json
+{"area":"pivnichno-brovarskyi","title":"Північно-Броварський масив","hours":48,
+ "streets":[{"name":"бульв. Дарницький","pattern":"Дарницький","file":"streets/bulv-darnytskyi.json"}, …],
+ "items":[{"t":"2026-11-04T17:18Z","k":"power","c":"Відсутність електропостачання","h":"1","s":"бульв. Дарницький"}, …]}
+```
+`s` — улица записи. Сейчас массив один — Північно-Броварський: Андрія Малишка, Солов'яненка, Миропільська,
+бульв. Дарницький, Шалетт Міста, Юності, Космічна, Князя Романа Мстиславича. Если по какой-то улице за окно
+не было ни одного обращения, она попадает в `meta.areas.<slug>.unmatched`.
 
 **`1551/city.json`** — по городу: `daily` (по дням по киевскому времени × категории),
 `hourly` (последние 48 ч), `hot` (улицы, где за последние 6 ч не меньше 3 обращений одной категории,

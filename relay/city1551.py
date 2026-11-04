@@ -13,6 +13,8 @@
   1551/meta.json            — когда собрано, самая свежая запись источника, счётчики
   1551/index.json           — список улиц → файл
   1551/streets/<slug>.json  — обращения по улице за последние WINDOW_DAYS дней
+  1551/areas/<slug>.json    — все улицы массива одним файлом за WINDOW_DAYS (список — relay/areas.json)
+  1551/areas/<slug>-recent.json — то же за последние RECENT_HOURS часов (для частого опроса)
   1551/city.json            — по городу: по дням, по часам за 48 ч, «горячие» улицы за 6 ч
   1551/months/ГГГГ-ММ.json.gz — отфильтрованный архив месяца (нужен для окна через границу месяца)
   buvets/buvets.json        — бюветы с координатами, генератором и жалобами «не працює» за 7 дней
@@ -59,6 +61,7 @@ KEEP_MONTHS = 13      # сколько месячных архивов хран�
 HOT_HOURS = 6         # окно «горячих» улиц
 HOT_MIN = 3           # минимум обращений на улице за окно, чтобы попасть в «горячие»
 HOT_TOP = 30          # сколько «горячих» улиц на категорию
+RECENT_HOURS = 48     # окно лёгкого файла массива
 REFRESH_PREV_DAYS = 2 # в первые дни месяца перекачиваем прошлый месяц (поздние записи)
 
 # Категории 1551 → короткий код. Для «pipes» берём только подкатегории из PIPES_PREFIXES.
@@ -269,7 +272,7 @@ def street_item(r: dict) -> dict:
     return it
 
 
-def build_streets(out: Path, recs: list[dict]) -> list[dict]:
+def build_streets(out: Path, recs: list[dict]) -> tuple[list[dict], dict[str, str]]:
     by_street: dict[str, list[dict]] = defaultdict(list)
     for r in recs:
         by_street[r["s"]].append(r)
@@ -294,7 +297,73 @@ def build_streets(out: Path, recs: list[dict]) -> list[dict]:
     for p in sdir.glob("*.json"):
         if p.name not in wanted:
             p.unlink()
-    return index
+    return index, slugs
+
+
+def _norm_words(s: str) -> str:
+    s = unicodedata.normalize("NFC", s.lower())
+    s = re.sub(r"[’'`ʼ]", "", s)
+    return " " + re.sub(r"[^\w]+", " ", s).strip() + " "
+
+
+def street_matches(name: str, pattern: str) -> bool:
+    """Целые слова pattern встречаются в name подряд (без учёта регистра и апострофов)."""
+    return _norm_words(pattern) in _norm_words(name)
+
+
+def load_areas(path: Path) -> dict:
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return {}
+    for slug, a in data.items():
+        if not re.fullmatch(r"[a-z0-9-]+", slug) or not a.get("streets"):
+            raise ValueError(f"areas.json: неверный массив {slug!r}")
+    return data
+
+
+def build_areas(out: Path, recs: list[dict], areas: dict, slugs: dict[str, str],
+                now: dt.datetime) -> dict:
+    """1551/areas/<slug>.json — все обращения по улицам массива одним файлом."""
+    adir = out / "1551" / "areas"
+    adir.mkdir(parents=True, exist_ok=True)
+    names = sorted({r["s"] for r in recs})
+    summary = {}
+    wanted = set()
+    for slug, a in sorted(areas.items()):
+        matched = {}
+        unmatched = []
+        for pat in a["streets"]:
+            hits = [n for n in names if street_matches(n, pat)]
+            if hits:
+                for n in hits:
+                    matched[n] = pat
+            else:
+                unmatched.append(pat)
+        items = [r for r in recs if r["s"] in matched]
+        items.sort(key=lambda x: (x["t"], x["u"]), reverse=True)
+        head = {
+            "area": slug,
+            "title": a.get("title") or slug,
+            "streets": [{"name": n, "pattern": matched[n], "file": f"streets/{slugs[n]}.json"}
+                        for n in sorted(matched)],
+        }
+        since = now - dt.timedelta(hours=RECENT_HOURS)
+        recent = [x for x in items if parse_t(x["t"]) >= since]
+        fname, rname = f"{slug}.json", f"{slug}-recent.json"
+        wanted.update((fname, rname))
+        write_json(adir / fname, dict(head, items=[dict(street_item(x), s=x["s"]) for x in items]))
+        write_json(adir / rname, dict(head, hours=RECENT_HOURS,
+                                      items=[dict(street_item(x), s=x["s"]) for x in recent]))
+        summary[slug] = {"file": f"areas/{fname}", "recent": f"areas/{rname}",
+                         "streets": len(matched), "n": len(items), "n_recent": len(recent)}
+        if unmatched:
+            summary[slug]["unmatched"] = unmatched
+            print(f"  массив {slug}: нет обращений по {unmatched}", file=sys.stderr)
+    for p in adir.glob("*.json"):
+        if p.name not in wanted:
+            p.unlink()
+    return summary
 
 
 def build_city(recs: list[dict], now: dt.datetime) -> dict:
@@ -414,7 +483,7 @@ def month_add(y: int, m: int, delta: int) -> tuple[int, int]:
 
 
 def run(out: Path, now: dt.datetime, source_dir: Path | None = None,
-        buvets_csv: bytes | None | str = "fetch") -> dict:
+        buvets_csv: bytes | None | str = "fetch", areas: dict | None = None) -> dict:
     out.mkdir(parents=True, exist_ok=True)
     mdir = out / "1551" / "months"
     cur = (now.year, now.month)          # месяцы в API — по времени записей (UTC-метки)
@@ -465,8 +534,9 @@ def run(out: Path, now: dt.datetime, source_dir: Path | None = None,
         if parse_t(r["t"]) >= since:
             window.append(r)
 
-    index = build_streets(out, window)
+    index, slugs = build_streets(out, window)
     write_json(out / "1551" / "index.json", {"streets": index})
+    area_summary = build_areas(out, window, areas or {}, slugs, now)
     write_json(out / "1551" / "city.json", build_city(window, now))
 
     if buvets_csv == "fetch":
@@ -492,6 +562,7 @@ def run(out: Path, now: dt.datetime, source_dir: Path | None = None,
         "streets": len(index),
         "kinds": dict(sorted(Counter(r["k"] for r in window).items())),
         "months": months,
+        "areas": area_summary,
         "buvets": n_buvets,
         "source": "КБУ «Контактний центр міста Києва» (1551), data.gov.ua, CC BY 4.0",
     }
@@ -504,11 +575,13 @@ def main(argv=None) -> int:
     ap.add_argument("--out", required=True, type=Path, help="каталог с опубликованными данными (ветка data)")
     ap.add_argument("--source-dir", type=Path, help="брать месяцы 1551 из файлов ГГГГ-ММ.json вместо API")
     ap.add_argument("--buvets-file", type=Path, help="брать CSV бюветов из файла")
+    ap.add_argument("--areas", type=Path, default=Path(__file__).with_name("areas.json"),
+                    help="массивы: {slug: {title, streets: [часть названия улицы]}}")
     ap.add_argument("--now", help="текущее время UTC, ISO 8601 (для тестов)")
     a = ap.parse_args(argv)
     now = parse_t(a.now) if a.now else dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
     buv = a.buvets_file.read_bytes() if a.buvets_file else "fetch"
-    meta = run(a.out, now, a.source_dir, buv)
+    meta = run(a.out, now, a.source_dir, buv, load_areas(a.areas))
     print(json.dumps(meta, ensure_ascii=False, indent=1))
     return 0
 
