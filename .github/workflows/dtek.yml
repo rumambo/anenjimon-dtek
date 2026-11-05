@@ -35,7 +35,7 @@ jobs:
 
       - name: Install Playwright & Chromium
         run: |
-          pip install playwright
+          pip install -r requirements.txt
           playwright install --with-deps chromium
 
       - name: Previous data

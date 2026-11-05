@@ -31,6 +31,12 @@ import re
 import sys
 from pathlib import Path
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+if str(SCRIPT_DIR.parent) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR.parent))
+
 # Імпортуємо правила нормалізації та зіставлення вулиць із city1551
 try:
     from relay.city1551 import load_areas, street_matches, write_json
