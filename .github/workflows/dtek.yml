@@ -1,9 +1,9 @@
 name: dtek
 
-# Раз в 10 минут: аварии ДТЭК по 8 улицам массива → ветка `data`.
+# Раз в 30 минут: аварии ДТЭК по 8 улицам массива → ветка `data`.
 on:
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "*/30 * * * *"
   workflow_dispatch:
   push:
     branches: [main]
