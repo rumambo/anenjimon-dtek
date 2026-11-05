@@ -18,7 +18,7 @@ permissions:
 
 concurrency:
   group: dtek
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   dtek:
