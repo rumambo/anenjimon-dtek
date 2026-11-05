@@ -5,6 +5,9 @@
 Поэтому GitHub Actions раз в 30 минут скачивает месяц, оставляет нужное и раскладывает по улицам.
 [AnenjiMon](https://github.com/rumambo/anenjimon) забирает только файл своей улицы — десятки килобайт.
 
+Аварийные отключения **ДТЭК** собираются отдельным воркфлоу через headless-браузер Playwright
+раз в 10 минут по 8 улицам массива (Північно-Броварський) и также публикуются в компактном JSON.
+
 Данные лежат в ветке **`data`**. Это одна коммит-«фотография» без истории, ветка не растёт.
 Прямые ссылки:
 
@@ -16,6 +19,10 @@ https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/1551/areas/pivnich
 https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/1551/streets/vul-andriia-malyshka.json
 https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/1551/city.json
 https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/buvets/buvets.json
+https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/dtek/areas/pivnichno-brovarskyi.json
+https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/dtek/active_emergencies.json
+https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/dtek/latest.json
+https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/dtek/status.json
 ```
 
 raw.githubusercontent.com отдаёт `ETag`: запрос с `If-None-Match` получает `304` без тела,
@@ -28,8 +35,19 @@ raw.githubusercontent.com отдаёт `ETag`: запрос с `If-None-Match` �
 |---|---|---|
 | Обращения в 1551 | `https://data.1551.gov.ua/api/data/ГГГГ/ММ` — [набор КМДА](https://data.gov.ua/dataset/4df91028-83af-43ca-8e28-36419dd24fa7) | у источника задержка ~1–2 ч; мы — раз в 30 мин |
 | Бюветы | [Бюветні комплекси… (Київводфонд)](https://data.gov.ua/dataset/a4144c44-aabe-4e49-8ea4-b79b0b8ebdcc) | у источника раз в квартал; мы — каждый запуск |
+| Аварии ДТЭК | `https://www.dtek-kem.com.ua/ua/shutdowns` (Playwright) | раз в 10 минут |
 
 Лицензия данных — CC BY 4.0. Показывая их, указывайте «за даними 1551 / Київводфонд».
+
+## ДТЭК (аварии по массиву)
+
+Сборщик `relay/dtek.py` опрашивает ДТЭК Киевские электросети по 8 улицам Північно-Броварського масива
+(список в `relay/areas.json`):
+
+* `dtek/areas/pivnichno-brovarskyi.json` — аварийные отключения массива, список домов и статус
+* `dtek/active_emergencies.json` — массив только активных аварий (пустой `[]`, если аварий нет)
+* `dtek/latest.json` — полный срез по всем 8 улицам со всеми домами
+* `dtek/status.json` — компактный статус (`OK` или `EMERGENCY`)
 
 ## Что берём из 1551
 
@@ -51,7 +69,7 @@ raw.githubusercontent.com отдаёт `ETag`: запрос с `If-None-Match` �
 Квартир и личных данных в источнике нет. Время закрытия обращения источник не даёт.
 Время `t` — как в источнике, с суффиксом `Z`.
 
-## Формат
+## Формат 1551
 
 **`1551/meta.json`** — свежесть и счётчики. `generated` — когда собрано; `source_latest` — самая свежая
 запись источника; `lag_minutes` — разница между ними; `window_days`; `kinds` — сколько записей
@@ -120,17 +138,15 @@ AnenjiMon может сопоставлять свои улицы тем же п
 
 ```sh
 python3 -m unittest discover -s relay -v
-python3 relay/city1551.py --out out                      # живые данные
-python3 relay/city1551.py --out out --source-dir src \
-        --buvets-file buvets.csv --now 2026-11-04T19:10:00Z  # из файлов src/ГГГГ-ММ.json
+python3 relay/city1551.py --out out                      # живые данные 1551
+python3 relay/dtek.py --out out                          # аварии ДТЭК
 ```
-
-Только стандартная библиотека Python 3.9+. На реальных данных (октябрь + ноябрь 2026, ~120 МБ JSON)
-занимает около 5 секунд. Результат: ~1 000 улиц, ~8 МБ в файлах улиц, ~1,2 МБ в архивах.
 
 ## Расписание
 
-`.github/workflows/city1551.yml` — в :17 и :47 каждого часа, а также вручную (Actions → city1551 → Run workflow)
-и при изменении кода. GitHub может задерживать запуски по расписанию на 5–20 минут.
-Последний шаг раз в запуск «включает» workflow через API, чтобы GitHub не отключил расписание
+* `.github/workflows/city1551.yml` — в :17 и :47 каждого часа.
+* `.github/workflows/dtek.yml` — раз в 10 минут (`*/10 * * * *`).
+
+GitHub может задерживать запуски по расписанию на 5–20 минут.
+Последний шаг каждого воркфлоу «включает» расписание через API, чтобы GitHub не отключил его
 после 60 дней без коммитов.

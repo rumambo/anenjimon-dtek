@@ -1,0 +1,75 @@
+name: dtek
+
+# Раз в 10 минут: аварии ДТЭК по 8 улицам массива → ветка `data`.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "relay/dtek.py"
+      - "relay/areas.json"
+      - ".github/workflows/dtek.yml"
+
+permissions:
+  contents: write   # публикация ветки data
+  actions: write    # продление расписания
+
+concurrency:
+  group: dtek
+  cancel-in-progress: false
+
+jobs:
+  dtek:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install Playwright & Chromium
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+
+      - name: Previous data
+        run: |
+          mkdir -p out
+          if git fetch --depth=1 origin data:refs/remotes/origin/data; then
+            git archive origin/data | tar -x -C out
+          else
+            echo "Ветки data ещё нет — первый запуск"
+          fi
+
+      - name: Scrape DTEK
+        run: python3 relay/dtek.py --out out
+
+      - name: Publish to branch data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          export GIT_INDEX_FILE="$RUNNER_TEMP/data.index"
+          rm -f "$GIT_INDEX_FILE"
+          git --work-tree=out add -A .
+          tree=$(git write-tree)
+          if git rev-parse -q --verify origin/data >/dev/null && \
+             [ "$tree" = "$(git rev-parse 'origin/data^{tree}')" ]; then
+            echo "Без изменений"
+            exit 0
+          fi
+          now=$(date -u +'%Y-%m-%d %H:%M:%S UTC')
+          commit=$(git commit-tree "$tree" -m "dtek: аварии по $now")
+          git push -f origin "$commit:refs/heads/data"
+
+      - name: Keep schedule alive
+        if: github.event_name == 'schedule'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api -X PUT "repos/${{ github.repository }}/actions/workflows/dtek.yml/enable"
