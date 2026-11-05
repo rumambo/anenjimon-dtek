@@ -386,6 +386,84 @@ def scrape_dtek(target_streets: list[str]) -> dict:
     return scrape_result
 
 
+def build_markdown_dashboard(kyiv_str: str, streets_data: dict, active_emergencies: list[dict]) -> str:
+    """Генерує зручну та зрозумілу таблицю в форматі Markdown для нетехнічних користувачів."""
+    lines = [
+        "# ⚡ Стан електропостачання та аварії ДТЕК",
+        "",
+        f"> **Останнє оновлення:** {kyiv_str} *(оновлюється кожні 10 хвилин)*  ",
+    ]
+
+    if active_emergencies:
+        lines.append(f"> **Загальний стан:** 🔴 **ВИЯВЛЕНО АВАРІЇ ({len(active_emergencies)})**")
+    else:
+        lines.append("> **Загальний стан:** 🟢 **ШТАТНИЙ РЕЖИМ (АВАРІЙ НЕМАЄ)**")
+
+    lines.extend([
+        "",
+        "---",
+        "",
+        "### 🚨 Де зараз аварії та коли повернуть світло",
+        "",
+    ])
+
+    if active_emergencies:
+        lines.append("| 📍 Адреса | Статус | Причина | Коли зникло | 💡 Орієнтовне включення |")
+        lines.append("|---|:---:|---|:---:|:---:|")
+        for em in active_emergencies:
+            street = em.get("matched_street") or em.get("pattern") or ""
+            house = em.get("house") or ""
+            sub_type = em.get("sub_type") or "Аварійний ремонт"
+            start_date = em.get("start_date") or "—"
+            end_date = em.get("end_date") or "Уточнюється"
+            lines.append(f"| **{street}, {house}** | 🔴 **Немає світла** | {sub_type} | {start_date} | **{end_date}** |")
+    else:
+        lines.append("🟢 **Наразі активних аварійних відключень не зафіксовано.**  ")
+        lines.append("Електропостачання здійснюється у звичайному режимі або за графіками стабілізаційних відключень.")
+
+    lines.extend([
+        "",
+        "---",
+        "",
+        "### 📋 Загальна ситуація по всіх 8 вулицях масиву",
+        "",
+        "| Вулиця | Всього будинків | Поточний стан |",
+        "|---|:---:|---|",
+    ])
+
+    aliases = {
+        "вул. Князя Романа Мстиславича": " *(кол. Жмаченка)*",
+        "вул. Солов’яненка Анатолія": " *(кол. Бойченка)*",
+        "вул. Шалетт міста": " *(Міста Шалетт)*",
+    }
+
+    for pattern, d in streets_data.items():
+        matched = d.get("matched_name") or pattern
+        extra = aliases.get(pattern, "")
+        houses_total = d.get("houses_total", 0)
+        has_em = d.get("has_emergency", False)
+        em_list = d.get("emergencies", [])
+
+        if has_em and em_list:
+            houses_str = ", ".join(sorted([str(e.get("house", "")) for e in em_list], key=lambda x: (int(re.sub(r'\D', '', x) or 0), x)))
+            other_count = max(0, houses_total - len(em_list))
+            other_text = f" *(в інших {other_count} будинках аварій немає)*" if other_count > 0 else ""
+            status_desc = f"⚠️ **Аварія в будинках № {houses_str}**{other_text}"
+        else:
+            status_desc = "🟢 **Аварій немає**, електропостачання в нормі"
+
+        lines.append(f"| **{matched}**{extra} | {houses_total} | {status_desc} |")
+
+    lines.extend([
+        "",
+        "---",
+        "",
+        "> ℹ️ *Дані автоматично збираються безпосередньо з сайту ДТЕК Київські електромережі за допомогою GitHub Actions раз на 10 хвилин.*",
+        "",
+    ])
+    return "\n".join(lines)
+
+
 def build_output(out_dir: Path, target_streets: list[str], raw_result: dict, now: dt.datetime | None = None) -> None:
     """Формує структуровані JSON файли для гілки `data`."""
     iso_utc, kyiv_str = get_kyiv_time(now)
@@ -462,6 +540,12 @@ def build_output(out_dir: Path, target_streets: list[str], raw_result: dict, now
         ],
     }
     write_json(areas_dir / "pivnichno-brovarskyi.json", area_file, pretty=True)
+
+    # 5. Зручний Markdown-звіт для людей (dtek/README.md, dtek/status.md, areas/pivnichno-brovarskyi.md)
+    md_content = build_markdown_dashboard(kyiv_str, streets_data, active_emergencies)
+    (dtek_dir / "README.md").write_text(md_content, encoding="utf-8")
+    (dtek_dir / "status.md").write_text(md_content, encoding="utf-8")
+    (areas_dir / "pivnichno-brovarskyi.md").write_text(md_content, encoding="utf-8")
 
     print(f"\n--- ПІДСУМОК ДТЕК ({kyiv_str}) ---")
     print(f"Знайдено аварій: {len(active_emergencies)}")

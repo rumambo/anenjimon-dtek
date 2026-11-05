@@ -23,6 +23,7 @@ https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/dtek/areas/pivnich
 https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/dtek/active_emergencies.json
 https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/dtek/latest.json
 https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/dtek/status.json
+https://raw.githubusercontent.com/rumambo/anenjimon-dtek/data/dtek/status.md
 ```
 
 raw.githubusercontent.com отдаёт `ETag`: запрос с `If-None-Match` получает `304` без тела,
@@ -44,6 +45,8 @@ raw.githubusercontent.com отдаёт `ETag`: запрос с `If-None-Match` �
 Сборщик `relay/dtek.py` опрашивает ДТЭК Киевские электросети по 8 улицам Північно-Броварського масива
 (список в `relay/areas.json`):
 
+* [Наглядная таблица аварий в GitHub (dtek/README.md)](https://github.com/rumambo/anenjimon-dtek/tree/data/dtek) — удобная таблица для жителей массива со статусами домов и временем включения
+* `dtek/status.md` — текстовая Markdown-сводка со статусами и временем
 * `dtek/areas/pivnichno-brovarskyi.json` — аварийные отключения массива, список домов и статус
 * `dtek/active_emergencies.json` — массив только активных аварий (пустой `[]`, если аварий нет)
 * `dtek/latest.json` — полный срез по всем 8 улицам со всеми домами

@@ -83,6 +83,17 @@ class DtekTest(unittest.TestCase):
             self.assertEqual(area_data["area"], "pivnichno-brovarskyi")
             self.assertTrue(area_data["has_emergencies"])
 
+            # Перевіряємо згенеровані Markdown-таблиці
+            readme_file = out / "dtek" / "README.md"
+            self.assertTrue(readme_file.exists())
+            readme_text = readme_file.read_text(encoding="utf-8")
+            self.assertIn("Де зараз аварії та коли повернуть світло", readme_text)
+            self.assertIn("Немає світла", readme_text)
+            self.assertIn("3", readme_text)
+
+            status_md = out / "dtek" / "status.md"
+            self.assertTrue(status_md.exists())
+
 
 if __name__ == "__main__":
     unittest.main()
