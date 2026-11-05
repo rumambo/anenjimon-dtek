@@ -94,6 +94,14 @@ class DtekTest(unittest.TestCase):
             status_md = out / "dtek" / "status.md"
             self.assertTrue(status_md.exists())
 
+            # Перевіряємо згенеровану HTML-сторінку
+            html_file = out / "dtek" / "index.html"
+            self.assertTrue(html_file.exists())
+            html_text = html_file.read_text(encoding="utf-8")
+            self.assertIn("<!DOCTYPE html>", html_text)
+            self.assertIn("Де зараз аварії та коли повернуть світло", html_text)
+            self.assertIn("Немає світла", html_text)
+
 
 if __name__ == "__main__":
     unittest.main()

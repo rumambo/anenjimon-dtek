@@ -464,6 +464,319 @@ def build_markdown_dashboard(kyiv_str: str, streets_data: dict, active_emergenci
     return "\n".join(lines)
 
 
+def build_html_dashboard(kyiv_str: str, streets_data: dict, active_emergencies: list[dict], target_streets: list[str]) -> str:
+    """Генерує зручну, сучасну та адаптивну HTML-сторінку зі статусами та таблицями."""
+    status_text = f"ВИЯВЛЕНО АВАРІЇ ({len(active_emergencies)})" if active_emergencies else "ШТАТНИЙ РЕЖИМ (АВАРІЙ НЕМАЄ)"
+    status_badge_bg = "#dc2626" if active_emergencies else "#16a34a"
+    status_icon = "🔴" if active_emergencies else "🟢"
+    total_houses = sum(d.get("houses_total", 0) for d in streets_data.values())
+
+    if active_emergencies:
+        em_rows = []
+        for em in active_emergencies:
+            street = em.get("matched_street") or em.get("pattern") or ""
+            house = em.get("house") or ""
+            sub_type = em.get("sub_type") or "Аварійний ремонт"
+            start_date = em.get("start_date") or "—"
+            end_date = em.get("end_date") or "Уточнюється"
+            reasons = "; ".join(em.get("reasons", []))
+            em_rows.append(f"""
+            <tr>
+              <td><strong>{street}, {house}</strong></td>
+              <td><span class="badge badge-red">🔴 Немає світла</span></td>
+              <td>{sub_type} <span class="sub-text">({reasons})</span></td>
+              <td>{start_date}</td>
+              <td class="highlight">{end_date}</td>
+            </tr>""")
+        emergencies_section = f"""
+        <div class="card">
+          <h2>🚨 Де зараз аварії та коли повернуть світло</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>📍 Адреса</th>
+                  <th>Статус</th>
+                  <th>Причина</th>
+                  <th>Коли зникло</th>
+                  <th>💡 Орієнтовне включення</th>
+                </tr>
+              </thead>
+              <tbody>
+                {''.join(em_rows)}
+              </tbody>
+            </table>
+          </div>
+        </div>"""
+    else:
+        emergencies_section = """
+        <div class="card">
+          <h2>🚨 Де зараз аварії</h2>
+          <div class="ok-box">
+            <span class="ok-icon">🟢</span>
+            <div>
+              <strong>Наразі активних аварійних відключень не зафіксовано.</strong>
+              <p>Електропостачання здійснюється у звичайному режимі або за графіками стабілізаційних відключень.</p>
+            </div>
+          </div>
+        </div>"""
+
+    street_rows = []
+    aliases = {
+        "вул. Князя Романа Мстиславича": " <span class='sub-text'>(кол. Жмаченка)</span>",
+        "вул. Солов’яненка Анатолія": " <span class='sub-text'>(кол. Бойченка)</span>",
+        "вул. Шалетт міста": " <span class='sub-text'>(Міста Шалетт)</span>",
+    }
+    for pattern, d in streets_data.items():
+        matched = d.get("matched_name") or pattern
+        extra = aliases.get(pattern, "")
+        houses_cnt = d.get("houses_total", 0)
+        has_em = d.get("has_emergency", False)
+        em_list = d.get("emergencies", [])
+        if has_em and em_list:
+            houses_str = ", ".join(sorted([str(e.get("house", "")) for e in em_list], key=lambda x: (int(re.sub(r'\D', '', x) or 0), x)))
+            badge = '<span class="badge badge-red">⚠️ Аварія</span>'
+            status_desc = f"<strong>Аварія в будинках № {houses_str}</strong>"
+        else:
+            badge = '<span class="badge badge-green">🟢 Норма</span>'
+            status_desc = "Аварій немає, світло є"
+
+        street_rows.append(f"""
+        <tr>
+          <td><strong>{matched}</strong>{extra}</td>
+          <td style="text-align: center;">{houses_cnt}</td>
+          <td style="text-align: center;">{badge}</td>
+          <td>{status_desc}</td>
+        </tr>""")
+
+    return f"""<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="300">
+  <title>⚡ Стан електропостачання та аварії ДТЕК — Північно-Броварський масив</title>
+  <style>
+    :root {{
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --red: #ef4444;
+      --red-bg: rgba(239, 68, 68, 0.15);
+      --green: #22c55e;
+      --green-bg: rgba(34, 197, 94, 0.15);
+    }}
+    @media (prefers-color-scheme: light) {{
+      :root {{
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --card-border: #e2e8f0;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --accent: #0284c7;
+        --red: #dc2626;
+        --red-bg: #fee2e2;
+        --green: #16a34a;
+        --green-bg: #dcfce7;
+      }}
+    }}
+    * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+    body {{
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 1.5rem 1rem;
+    }}
+    .container {{
+      max-width: 900px;
+      margin: 0 auto;
+    }}
+    header {{
+      margin-bottom: 2rem;
+      text-align: center;
+    }}
+    h1 {{
+      font-size: 1.6rem;
+      margin-bottom: 0.5rem;
+      font-weight: 700;
+    }}
+    .meta-bar {{
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }}
+    .status-pill {{
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: white;
+      background: {status_badge_bg};
+    }}
+    .stats-grid {{
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }}
+    .stat-box {{
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+    }}
+    .stat-val {{
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--accent);
+    }}
+    .stat-val.red {{ color: var(--red); }}
+    .stat-val.green {{ color: var(--green); }}
+    .stat-label {{
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }}
+    .card {{
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }}
+    h2 {{
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }}
+    .table-wrap {{
+      overflow-x: auto;
+    }}
+    table {{
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }}
+    th, td {{
+      padding: 0.75rem 0.85rem;
+      text-align: left;
+      border-bottom: 1px solid var(--card-border);
+    }}
+    th {{
+      font-weight: 600;
+      color: var(--text-muted);
+      background: rgba(0,0,0,0.02);
+      white-space: nowrap;
+    }}
+    tr:last-child td {{ border-bottom: none; }}
+    .badge {{
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }}
+    .badge-red {{ background: var(--red-bg); color: var(--red); }}
+    .badge-green {{ background: var(--green-bg); color: var(--green); }}
+    .highlight {{ font-weight: 700; color: var(--red); }}
+    .sub-text {{ font-size: 0.8rem; color: var(--text-muted); font-weight: normal; }}
+    .ok-box {{
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--green-bg);
+      border-radius: 10px;
+      color: var(--green);
+    }}
+    .ok-icon {{ font-size: 2rem; }}
+    .ok-box p {{ color: var(--text); font-size: 0.9rem; margin-top: 0.25rem; }}
+    footer {{
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--card-border);
+    }}
+    footer a {{ color: var(--accent); text-decoration: none; }}
+    footer a:hover {{ text-decoration: underline; }}
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>⚡ Стан електропостачання та аварії ДТЕК</h1>
+      <p style="color: var(--text-muted);">Північно-Броварський масив (м. Київ, Дніпровський район)</p>
+      <div class="meta-bar">
+        <span>🕒 Оновлено: <strong>{kyiv_str}</strong></span>
+        <span>•</span>
+        <span class="status-pill">{status_icon} {status_text}</span>
+      </div>
+    </header>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-val">{len(target_streets)}</div>
+        <div class="stat-label">Вулиць на моніторингу</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">{total_houses}</div>
+        <div class="stat-label">Будинків перевірено</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val {'red' if active_emergencies else 'green'}">{len(active_emergencies)}</div>
+        <div class="stat-label">Активних аварій</div>
+      </div>
+    </div>
+
+    {emergencies_section}
+
+    <div class="card">
+      <h2>📋 Загальна ситуація по всіх 8 вулицях</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Вулиця</th>
+              <th style="text-align: center;">Будинків</th>
+              <th style="text-align: center;">Статус</th>
+              <th>Деталі</th>
+            </tr>
+          </thead>
+          <tbody>
+            {''.join(street_rows)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer>
+      Дані збираються автоматично кожні 10 хвилин з сайту ДТЕК через GitHub Actions.<br>
+      <a href="active_emergencies.json">JSON аварій</a> • <a href="latest.json">Повний JSON</a> • <a href="status.json">status.json</a> • <a href="README.md">Markdown версія</a>
+    </footer>
+  </div>
+</body>
+</html>"""
+
+
 def build_output(out_dir: Path, target_streets: list[str], raw_result: dict, now: dt.datetime | None = None) -> None:
     """Формує структуровані JSON файли для гілки `data`."""
     iso_utc, kyiv_str = get_kyiv_time(now)
@@ -546,6 +859,12 @@ def build_output(out_dir: Path, target_streets: list[str], raw_result: dict, now
     (dtek_dir / "README.md").write_text(md_content, encoding="utf-8")
     (dtek_dir / "status.md").write_text(md_content, encoding="utf-8")
     (areas_dir / "pivnichno-brovarskyi.md").write_text(md_content, encoding="utf-8")
+
+    # 6. Сучасна HTML-сторінка (dtek/index.html, dtek/status.html, areas/pivnichno-brovarskyi.html)
+    html_content = build_html_dashboard(kyiv_str, streets_data, active_emergencies, target_streets)
+    (dtek_dir / "index.html").write_text(html_content, encoding="utf-8")
+    (dtek_dir / "status.html").write_text(html_content, encoding="utf-8")
+    (areas_dir / "pivnichno-brovarskyi.html").write_text(html_content, encoding="utf-8")
 
     print(f"\n--- ПІДСУМОК ДТЕК ({kyiv_str}) ---")
     print(f"Знайдено аварій: {len(active_emergencies)}")
