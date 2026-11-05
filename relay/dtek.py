@@ -94,6 +94,7 @@ def scrape_dtek(target_streets: list[str]) -> dict:
         )
 
         page = context.new_page()
+        page.on("console", lambda msg: print(f"[Browser] {msg.text}"))
 
         max_attempts = 3
         scrape_result = None
@@ -120,11 +121,26 @@ def scrape_dtek(target_streets: list[str]) -> dict:
                         }
 
                         // 1. Пошук адреси AJAX-обробника
-                        const metaAjax = document.querySelector('meta[name="ajaxUrl"]')?.getAttribute('content');
-                        const ajaxUrl = metaAjax || window.ajaxUrl || '/ua/ajax';
+                        let metaAjax = document.querySelector('meta[name="ajaxUrl"]')?.getAttribute('content');
+                        let ajaxUrl = metaAjax || window.ajaxUrl;
+                        if (!ajaxUrl) {
+                            for (const s of document.querySelectorAll('script')) {
+                                const t = s.innerText || '';
+                                const m = t.match(/ajax(?:_url|Url)?\s*[:=]\s*['"]([^'"]+)['"]/i);
+                                if (m) { ajaxUrl = m[1]; break; }
+                            }
+                        }
+                        if (!ajaxUrl) ajaxUrl = '/ua/ajax';
+                        console.log('[DTEK] Discovered ajaxUrl:', ajaxUrl);
 
-                        // 2. Оголошення або глобальний банер про екстрені відключення
-                        const alertEls = Array.from(document.querySelectorAll('.alert, .discon-alert, .emergency-notice, [class*="alert"]'));
+                        const ajaxHeaders = {
+                            'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+                            'X-Requested-With': 'XMLHttpRequest'
+                        };
+
+                        // 2. Оголошення або глобальний банер про екстрені відключення (тільки видимі на екрані)
+                        const alertEls = Array.from(document.querySelectorAll('.alert, .discon-alert, .emergency-notice, [class*="alert"]'))
+                            .filter(el => el.offsetParent !== null && window.getComputedStyle(el).display !== 'none');
                         const bannerText = alertEls.map(el => el.innerText.trim()).filter(Boolean).join('\\n') || null;
                         const isGlobalEmergency = bannerText ? /аварі|екстрен/i.test(bannerText) : false;
 
@@ -135,13 +151,17 @@ def scrape_dtek(target_streets: list[str]) -> dict:
                         try {
                             const f = new URLSearchParams();
                             f.append('method', 'getStreets');
+                            f.append('action', 'getStreets');
                             const res = await fetch(ajaxUrl, {
                                 method: 'POST',
-                                headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                                headers: ajaxHeaders,
                                 body: f.toString()
                             });
-                            if (res.ok) {
-                                const json = await res.json();
+                            console.log('[DTEK] getStreets status:', res.status);
+                            const textStreets = await res.text();
+                            console.log('[DTEK] getStreets raw length:', textStreets.length, 'sample:', textStreets.substring(0, 150));
+                            if (res.ok && textStreets) {
+                                const json = JSON.parse(textStreets);
                                 if (json && json.streets) {
                                     if (Array.isArray(json.streets)) {
                                         allStreets = json.streets;
@@ -158,10 +178,20 @@ def scrape_dtek(target_streets: list[str]) -> dict:
                                 }
                             }
                         } catch (e) {
-                            console.error('getStreets error:', e);
+                            console.error('[DTEK] getStreets error:', e);
+                        }
+
+                        // Якщо через AJAX не отримали, шукаємо у випадаючих списках сторінки
+                        if (allStreets.length === 0) {
+                            const domOptions = Array.from(document.querySelectorAll('select option, datalist option')).map(o => (o.value || o.innerText).trim()).filter(Boolean);
+                            if (domOptions.length > 0) {
+                                console.log('[DTEK] Found streets in DOM:', domOptions.length);
+                                allStreets = domOptions;
+                            }
                         }
 
                         allStreets = Array.from(new Set(allStreets));
+                        console.log('[DTEK] Total unique streets found:', allStreets.length);
 
                         // 4. Опитування будинків для кожної вулиці
                         const streetResults = {};
@@ -179,6 +209,7 @@ def scrape_dtek(target_streets: list[str]) -> dict:
                             if (!matchedName) {
                                 matchedName = targetPattern;
                             }
+                            console.log(`[DTEK] Target: "${targetPattern}" -> Matched: "${matchedName}"`);
 
                             const timestamp = Math.floor(Date.now() / 1000);
                             let homeData = null;
@@ -187,6 +218,7 @@ def scrape_dtek(target_streets: list[str]) -> dict:
                             try {
                                 const p1 = new URLSearchParams();
                                 p1.append('method', 'getHomeNum');
+                                p1.append('action', 'getHomeNum');
                                 p1.append('data[0][name]', 'city');
                                 p1.append('data[0][value]', city);
                                 p1.append('data[1][name]', 'street');
@@ -196,31 +228,47 @@ def scrape_dtek(target_streets: list[str]) -> dict:
 
                                 const r1 = await fetch(ajaxUrl, {
                                     method: 'POST',
-                                    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                                    headers: ajaxHeaders,
                                     body: p1.toString()
                                 });
-                                if (r1.ok) homeData = await r1.json();
-                            } catch (_) {}
+                                const t1 = await r1.text();
+                                if (r1.ok && t1) {
+                                    const j1 = JSON.parse(t1);
+                                    if (j1 && j1.data) {
+                                        homeData = j1;
+                                        console.log(`[DTEK] Homes found for "${matchedName}" via p1:`, Object.keys(j1.data).length);
+                                    }
+                                }
+                            } catch (e) {
+                                console.error(`[DTEK] getHomeNum p1 error for ${matchedName}:`, e);
+                            }
 
                             // Спроба 2: прямі параметри
                             if (!homeData || !homeData.data) {
                                 try {
                                     const p2 = new URLSearchParams();
                                     p2.append('method', 'getHomeNum');
+                                    p2.append('action', 'getHomeNum');
                                     p2.append('city', city);
                                     p2.append('street', matchedName);
                                     p2.append('updateFact', String(timestamp));
 
                                     const r2 = await fetch(ajaxUrl, {
                                         method: 'POST',
-                                        headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+                                        headers: ajaxHeaders,
                                         body: p2.toString()
                                     });
-                                    if (r2.ok) {
-                                        const j2 = await r2.json();
-                                        if (j2 && j2.data) homeData = j2;
+                                    const t2 = await r2.text();
+                                    if (r2.ok && t2) {
+                                        const j2 = JSON.parse(t2);
+                                        if (j2 && j2.data) {
+                                            homeData = j2;
+                                            console.log(`[DTEK] Homes found for "${matchedName}" via p2:`, Object.keys(j2.data).length);
+                                        }
                                     }
-                                } catch (_) {}
+                                } catch (e) {
+                                    console.error(`[DTEK] getHomeNum p2 error for ${matchedName}:`, e);
+                                }
                             }
 
                             const streetEmergencies = [];
