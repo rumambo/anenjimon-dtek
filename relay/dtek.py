@@ -120,7 +120,7 @@ def scrape_dtek(target_streets: list[str]) -> dict:
                                 .trim();
                         }
 
-                        // 1. Пошук адреси AJAX-обробника
+                        // 1. Пошук адреси AJAX-обробника та Yii2 CSRF токена
                         let metaAjax = document.querySelector('meta[name="ajaxUrl"]')?.getAttribute('content');
                         let ajaxUrl = metaAjax || window.ajaxUrl;
                         if (!ajaxUrl) {
@@ -133,10 +133,20 @@ def scrape_dtek(target_streets: list[str]) -> dict:
                         if (!ajaxUrl) ajaxUrl = '/ua/ajax';
                         console.log('[DTEK] Discovered ajaxUrl:', ajaxUrl);
 
+                        // Знаходимо CSRF параметри Yii2
+                        const csrfParam = document.querySelector('meta[name="csrf-param"]')?.getAttribute('content') ||
+                                          (window.yii && window.yii.getCsrfParam ? window.yii.getCsrfParam() : '_csrf');
+                        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                                          (window.yii && window.yii.getCsrfToken ? window.yii.getCsrfToken() : null);
+                        console.log('[DTEK] CSRF Param:', csrfParam, 'Token present:', !!csrfToken);
+
                         const ajaxHeaders = {
                             'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
                             'X-Requested-With': 'XMLHttpRequest'
                         };
+                        if (csrfToken) {
+                            ajaxHeaders['X-CSRF-Token'] = csrfToken;
+                        }
 
                         // 2. Оголошення або глобальний банер про екстрені відключення (тільки видимі на екрані)
                         const alertEls = Array.from(document.querySelectorAll('.alert, .discon-alert, .emergency-notice, [class*="alert"]'))
@@ -150,6 +160,9 @@ def scrape_dtek(target_streets: list[str]) -> dict:
 
                         try {
                             const f = new URLSearchParams();
+                            if (csrfParam && csrfToken) {
+                                f.append(csrfParam, csrfToken);
+                            }
                             f.append('method', 'getStreets');
                             f.append('action', 'getStreets');
                             const res = await fetch(ajaxUrl, {
@@ -214,9 +227,12 @@ def scrape_dtek(target_streets: list[str]) -> dict:
                             const timestamp = Math.floor(Date.now() / 1000);
                             let homeData = null;
 
-                            // Спроба 1: WordPress serializedArray
+                            // Спроба 1: WordPress / Yii2 serializedArray
                             try {
                                 const p1 = new URLSearchParams();
+                                if (csrfParam && csrfToken) {
+                                    p1.append(csrfParam, csrfToken);
+                                }
                                 p1.append('method', 'getHomeNum');
                                 p1.append('action', 'getHomeNum');
                                 p1.append('data[0][name]', 'city');
@@ -247,6 +263,9 @@ def scrape_dtek(target_streets: list[str]) -> dict:
                             if (!homeData || !homeData.data) {
                                 try {
                                     const p2 = new URLSearchParams();
+                                    if (csrfParam && csrfToken) {
+                                        p2.append(csrfParam, csrfToken);
+                                    }
                                     p2.append('method', 'getHomeNum');
                                     p2.append('action', 'getHomeNum');
                                     p2.append('city', city);
