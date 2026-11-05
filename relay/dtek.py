@@ -866,6 +866,25 @@ def build_output(out_dir: Path, target_streets: list[str], raw_result: dict, now
     (dtek_dir / "status.html").write_text(html_content, encoding="utf-8")
     (areas_dir / "pivnichno-brovarskyi.html").write_text(html_content, encoding="utf-8")
 
+    # 7. Корінь для GitHub Pages: .nojekyll та кореневий index.html з автоперенаправленням на dtek/
+    (out_dir / ".nojekyll").touch(exist_ok=True)
+    root_redirect = """<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="0; url=dtek/">
+  <script>window.location.replace("dtek/");</script>
+  <title>Моніторинг ДТЕК — Північно-Броварський масив</title>
+</head>
+<body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; text-align: center; padding: 3rem 1rem;">
+  <h2>⚡ Моніторинг ДТЕК</h2>
+  <p>Перенаправлення на <a href="dtek/">дашборд аварій</a>...</p>
+</body>
+</html>
+"""
+    (out_dir / "index.html").write_text(root_redirect, encoding="utf-8")
+
     print(f"\n--- ПІДСУМОК ДТЕК ({kyiv_str}) ---")
     print(f"Знайдено аварій: {len(active_emergencies)}")
     for i, em in enumerate(active_emergencies, 1):

@@ -102,6 +102,13 @@ class DtekTest(unittest.TestCase):
             self.assertIn("Де зараз аварії та коли повернуть світло", html_text)
             self.assertIn("Немає світла", html_text)
 
+            # Перевіряємо кореневий редирект для GitHub Pages
+            root_html = out / "index.html"
+            self.assertTrue(root_html.exists())
+            root_text = root_html.read_text(encoding="utf-8")
+            self.assertIn("url=dtek/", root_text)
+            self.assertTrue((out / ".nojekyll").exists())
+
 
 if __name__ == "__main__":
     unittest.main()
