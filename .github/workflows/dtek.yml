@@ -33,10 +33,19 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
+      - name: Cache Playwright browser
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+
       - name: Install Playwright & Chromium
         run: |
           pip install -r requirements.txt
-          playwright install --with-deps chromium
+          if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != "true" ]; then
+            playwright install --with-deps chromium
+          fi
 
       - name: Previous data
         run: |
