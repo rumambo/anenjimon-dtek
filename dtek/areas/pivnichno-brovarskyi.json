@@ -1,0 +1,242 @@
+{
+ "area": "pivnichno-brovarskyi",
+ "title": "Північно-Броварський масив",
+ "generated_kyiv": "07.11.2026, 18:50:05",
+ "has_emergencies": true,
+ "emergencies": [
+  {
+   "pattern": "вул. Малишка Андрія",
+   "matched_street": "вул. Малишка Андрія",
+   "house": "9",
+   "sub_type": "Аварійні ремонтні роботи",
+   "reasons": [
+    "GPV54.1"
+   ],
+   "start_date": "17:17 07.11.2026",
+   "end_date": "21:17 07.11.2026"
+  },
+  {
+   "pattern": "вул. Малишка Андрія",
+   "matched_street": "вул. Малишка Андрія",
+   "house": "21",
+   "sub_type": "Аварійні ремонтні роботи",
+   "reasons": [
+    "GPV54.1"
+   ],
+   "start_date": "17:24 07.11.2026",
+   "end_date": "21:24 07.11.2026"
+  },
+  {
+   "pattern": "вул. Малишка Андрія",
+   "matched_street": "вул. Малишка Андрія",
+   "house": "23",
+   "sub_type": "Аварійні ремонтні роботи",
+   "reasons": [
+    "GPV54.1"
+   ],
+   "start_date": "17:24 07.11.2026",
+   "end_date": "21:24 07.11.2026"
+  },
+  {
+   "pattern": "вул. Малишка Андрія",
+   "matched_street": "вул. Малишка Андрія",
+   "house": "25",
+   "sub_type": "Аварійні ремонтні роботи",
+   "reasons": [
+    "GPV54.1"
+   ],
+   "start_date": "17:24 07.11.2026",
+   "end_date": "21:24 07.11.2026"
+  },
+  {
+   "pattern": "вул. Малишка Андрія",
+   "matched_street": "вул. Малишка Андрія",
+   "house": "21/А",
+   "sub_type": "Аварійні ремонтні роботи",
+   "reasons": [
+    "GPV54.1"
+   ],
+   "start_date": "17:24 07.11.2026",
+   "end_date": "21:24 07.11.2026"
+  },
+  {
+   "pattern": "вул. Малишка Андрія",
+   "matched_street": "вул. Малишка Андрія",
+   "house": "19/А",
+   "sub_type": "Аварійні ремонтні роботи",
+   "reasons": [
+    "GPV54.1"
+   ],
+   "start_date": "17:24 07.11.2026",
+   "end_date": "21:24 07.11.2026"
+  },
+  {
+   "pattern": "вул. Миропільська",
+   "matched_street": "вул. Миропільська",
+   "house": "37",
+   "sub_type": "Аварійні ремонтні роботи",
+   "reasons": [
+    "GPV54.1"
+   ],
+   "start_date": "17:21 07.11.2026",
+   "end_date": "21:21 07.11.2026"
+  },
+  {
+   "pattern": "вул. Миропільська",
+   "matched_street": "вул. Миропільська",
+   "house": "37/В",
+   "sub_type": "Аварійні ремонтні роботи",
+   "reasons": [
+    "GPV54.1"
+   ],
+   "start_date": "17:21 07.11.2026",
+   "end_date": "21:21 07.11.2026"
+  },
+  {
+   "pattern": "вул. Миропільська",
+   "matched_street": "вул. Миропільська",
+   "house": "37/Б",
+   "sub_type": "Аварійні ремонтні роботи",
+   "reasons": [
+    "GPV54.1"
+   ],
+   "start_date": "17:21 07.11.2026",
+   "end_date": "21:21 07.11.2026"
+  },
+  {
+   "pattern": "бул. Дарницький",
+   "matched_street": "бул. Дарницький",
+   "house": "4",
+   "sub_type": "Аварійні ремонтні роботи",
+   "reasons": [
+    "GPV54.1"
+   ],
+   "start_date": "17:17 07.11.2026",
+   "end_date": "21:17 07.11.2026"
+  },
+  {
+   "pattern": "бул. Дарницький",
+   "matched_street": "бул. Дарницький",
+   "house": "4/А",
+   "sub_type": "Аварійні ремонтні роботи",
+   "reasons": [
+    "GPV54.1"
+   ],
+   "start_date": "17:17 07.11.2026",
+   "end_date": "21:17 07.11.2026"
+  },
+  {
+   "pattern": "вул. Князя Романа Мстиславича",
+   "matched_street": "вул. Князя Романа Мстиславича",
+   "house": "16",
+   "sub_type": "Аварійні ремонтні роботи",
+   "reasons": [
+    "GPV54.1"
+   ],
+   "start_date": "17:29 07.11.2026",
+   "end_date": "21:29 07.11.2026"
+  },
+  {
+   "pattern": "вул. Князя Романа Мстиславича",
+   "matched_street": "вул. Князя Романа Мстиславича",
+   "house": "18",
+   "sub_type": "Аварійні ремонтні роботи",
+   "reasons": [
+    "GPV54.1"
+   ],
+   "start_date": "17:29 07.11.2026",
+   "end_date": "21:29 07.11.2026"
+  },
+  {
+   "pattern": "вул. Князя Романа Мстиславича",
+   "matched_street": "вул. Князя Романа Мстиславича",
+   "house": "28",
+   "sub_type": "Аварійні ремонтні роботи",
+   "reasons": [
+    "GPV54.1"
+   ],
+   "start_date": "17:21 07.11.2026",
+   "end_date": "21:21 07.11.2026"
+  },
+  {
+   "pattern": "вул. Князя Романа Мстиславича",
+   "matched_street": "вул. Князя Романа Мстиславича",
+   "house": "28/А",
+   "sub_type": "Аварійні ремонтні роботи",
+   "reasons": [
+    "GPV54.1"
+   ],
+   "start_date": "17:21 07.11.2026",
+   "end_date": "21:21 07.11.2026"
+  },
+  {
+   "pattern": "вул. Князя Романа Мстиславича",
+   "matched_street": "вул. Князя Романа Мстиславича",
+   "house": "28/Б",
+   "sub_type": "Аварійні ремонтні роботи",
+   "reasons": [
+    "GPV54.1"
+   ],
+   "start_date": "17:21 07.11.2026",
+   "end_date": "21:21 07.11.2026"
+  }
+ ],
+ "streets": [
+  {
+   "pattern": "вул. Малишка Андрія",
+   "matched_name": "вул. Малишка Андрія",
+   "has_emergency": true,
+   "emergencies_count": 6,
+   "houses_total": 41
+  },
+  {
+   "pattern": "вул. Солов’яненка Анатолія",
+   "matched_name": "вул. Солов’яненка Анатолія",
+   "has_emergency": false,
+   "emergencies_count": 0,
+   "houses_total": 23
+  },
+  {
+   "pattern": "вул. Миропільська",
+   "matched_name": "вул. Миропільська",
+   "has_emergency": true,
+   "emergencies_count": 3,
+   "houses_total": 35
+  },
+  {
+   "pattern": "бул. Дарницький",
+   "matched_name": "бул. Дарницький",
+   "has_emergency": true,
+   "emergencies_count": 2,
+   "houses_total": 28
+  },
+  {
+   "pattern": "вул. Шалетт міста",
+   "matched_name": "вул. Шалетт міста",
+   "has_emergency": false,
+   "emergencies_count": 0,
+   "houses_total": 11
+  },
+  {
+   "pattern": "вул. Юності",
+   "matched_name": "вул. Юності",
+   "has_emergency": false,
+   "emergencies_count": 0,
+   "houses_total": 18
+  },
+  {
+   "pattern": "вул. Космічна",
+   "matched_name": "вул. Космічна",
+   "has_emergency": false,
+   "emergencies_count": 0,
+   "houses_total": 14
+  },
+  {
+   "pattern": "вул. Князя Романа Мстиславича",
+   "matched_name": "вул. Князя Романа Мстиславича",
+   "has_emergency": true,
+   "emergencies_count": 5,
+   "houses_total": 20
+  }
+ ]
+}

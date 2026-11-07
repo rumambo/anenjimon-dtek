@@ -1,0 +1,57 @@
+{
+ "status": "EMERGENCY",
+ "last_updated_kyiv": "07.11.2026, 18:50:05",
+ "last_updated_utc": "2026-11-07T16:50:05Z",
+ "emergencies_count": 16,
+ "global_alert": false,
+ "streets": [
+  {
+   "street": "вул. Малишка Андрія",
+   "has_emergency": true,
+   "emergencies_count": 6,
+   "houses_total": 41
+  },
+  {
+   "street": "вул. Солов’яненка Анатолія",
+   "has_emergency": false,
+   "emergencies_count": 0,
+   "houses_total": 23
+  },
+  {
+   "street": "вул. Миропільська",
+   "has_emergency": true,
+   "emergencies_count": 3,
+   "houses_total": 35
+  },
+  {
+   "street": "бул. Дарницький",
+   "has_emergency": true,
+   "emergencies_count": 2,
+   "houses_total": 28
+  },
+  {
+   "street": "вул. Шалетт міста",
+   "has_emergency": false,
+   "emergencies_count": 0,
+   "houses_total": 11
+  },
+  {
+   "street": "вул. Юності",
+   "has_emergency": false,
+   "emergencies_count": 0,
+   "houses_total": 18
+  },
+  {
+   "street": "вул. Космічна",
+   "has_emergency": false,
+   "emergencies_count": 0,
+   "houses_total": 14
+  },
+  {
+   "street": "вул. Князя Романа Мстиславича",
+   "has_emergency": true,
+   "emergencies_count": 5,
+   "houses_total": 20
+  }
+ ]
+}
