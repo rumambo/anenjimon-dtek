@@ -33,18 +33,27 @@ jobs:
           python-version: "3.11"
           cache: "pip"
 
+      # Браузер у кеші має відповідати встановленій версії Playwright: 10.11 вийшла 1.65, pip її поставив,
+      # а кеш (ключ — лише requirements.txt) віддав старий Chromium → «Executable doesn't exist».
+      - name: Install Playwright
+        id: pw
+        run: |
+          pip install -r requirements.txt
+          echo "version=$(python -c 'import importlib.metadata as m; print(m.version("playwright"))')" >> "$GITHUB_OUTPUT"
+
       - name: Cache Playwright browser
         uses: actions/cache@v4
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('requirements.txt') }}
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
 
-      - name: Install Playwright & Chromium
+      - name: Install Chromium
         run: |
-          pip install -r requirements.txt
           if [ "${{ steps.playwright-cache.outputs.cache-hit }}" != "true" ]; then
             playwright install --with-deps chromium
+          else
+            playwright install chromium   # якщо чогось бракує — докачає, інакше миттєво
           fi
 
       - name: Previous data
