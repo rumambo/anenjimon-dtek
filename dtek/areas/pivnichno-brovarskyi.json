@@ -1,0 +1,65 @@
+{
+ "area": "pivnichno-brovarskyi",
+ "title": "Північно-Броварський масив",
+ "generated_kyiv": "14.11.2026, 17:46:58",
+ "has_emergencies": false,
+ "emergencies": [],
+ "streets": [
+  {
+   "pattern": "вул. Малишка Андрія",
+   "matched_name": "вул. Малишка Андрія",
+   "has_emergency": false,
+   "emergencies_count": 0,
+   "houses_total": 41
+  },
+  {
+   "pattern": "вул. Солов’яненка Анатолія",
+   "matched_name": "вул. Солов’яненка Анатолія",
+   "has_emergency": false,
+   "emergencies_count": 0,
+   "houses_total": 23
+  },
+  {
+   "pattern": "вул. Миропільська",
+   "matched_name": "вул. Миропільська",
+   "has_emergency": false,
+   "emergencies_count": 0,
+   "houses_total": 35
+  },
+  {
+   "pattern": "бул. Дарницький",
+   "matched_name": "бул. Дарницький",
+   "has_emergency": false,
+   "emergencies_count": 0,
+   "houses_total": 28
+  },
+  {
+   "pattern": "вул. Шалетт міста",
+   "matched_name": "вул. Шалетт міста",
+   "has_emergency": false,
+   "emergencies_count": 0,
+   "houses_total": 11
+  },
+  {
+   "pattern": "вул. Юності",
+   "matched_name": "вул. Юності",
+   "has_emergency": false,
+   "emergencies_count": 0,
+   "houses_total": 18
+  },
+  {
+   "pattern": "вул. Космічна",
+   "matched_name": "вул. Космічна",
+   "has_emergency": false,
+   "emergencies_count": 0,
+   "houses_total": 14
+  },
+  {
+   "pattern": "вул. Князя Романа Мстиславича",
+   "matched_name": "вул. Князя Романа Мстиславича",
+   "has_emergency": false,
+   "emergencies_count": 0,
+   "houses_total": 20
+  }
+ ]
+}

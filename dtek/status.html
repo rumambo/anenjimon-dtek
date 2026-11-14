@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="refresh" content="300">
+  <title>⚡ Стан електропостачання та аварії ДТЕК — Північно-Броварський масив</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent: #38bdf8;
+      --red: #ef4444;
+      --red-bg: rgba(239, 68, 68, 0.15);
+      --green: #22c55e;
+      --green-bg: rgba(34, 197, 94, 0.15);
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f8fafc;
+        --card-bg: #ffffff;
+        --card-border: #e2e8f0;
+        --text: #0f172a;
+        --text-muted: #64748b;
+        --accent: #0284c7;
+        --red: #dc2626;
+        --red-bg: #fee2e2;
+        --green: #16a34a;
+        --green-bg: #dcfce7;
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      padding: 1.5rem 1rem;
+    }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+    header {
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+    h1 {
+      font-size: 1.6rem;
+      margin-bottom: 0.5rem;
+      font-weight: 700;
+    }
+    .meta-bar {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.25rem 0.75rem;
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: 0.85rem;
+      color: white;
+      background: #16a34a;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    .stat-box {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1rem;
+      text-align: center;
+    }
+    .stat-val {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--accent);
+    }
+    .stat-val.red { color: var(--red); }
+    .stat-val.green { color: var(--green); }
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 14px;
+      padding: 1.25rem;
+      margin-bottom: 1.5rem;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+    h2 {
+      font-size: 1.2rem;
+      margin-bottom: 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .table-wrap {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+    th, td {
+      padding: 0.75rem 0.85rem;
+      text-align: left;
+      border-bottom: 1px solid var(--card-border);
+    }
+    th {
+      font-weight: 600;
+      color: var(--text-muted);
+      background: rgba(0,0,0,0.02);
+      white-space: nowrap;
+    }
+    tr:last-child td { border-bottom: none; }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-red { background: var(--red-bg); color: var(--red); }
+    .badge-green { background: var(--green-bg); color: var(--green); }
+    .highlight { font-weight: 700; color: var(--red); }
+    .sub-text { font-size: 0.8rem; color: var(--text-muted); font-weight: normal; }
+    .ok-box {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 1rem;
+      background: var(--green-bg);
+      border-radius: 10px;
+      color: var(--green);
+    }
+    .ok-icon { font-size: 2rem; }
+    .ok-box p { color: var(--text); font-size: 0.9rem; margin-top: 0.25rem; }
+    footer {
+      text-align: center;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--card-border);
+    }
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>⚡ Стан електропостачання та аварії ДТЕК</h1>
+      <p style="color: var(--text-muted);">Північно-Броварський масив (м. Київ, Дніпровський район)</p>
+      <div class="meta-bar">
+        <span>🕒 Оновлено: <strong>14.11.2026, 17:46:58</strong></span>
+        <span>•</span>
+        <span class="status-pill">🟢 ШТАТНИЙ РЕЖИМ (АВАРІЙ НЕМАЄ)</span>
+      </div>
+    </header>
+
+    <div class="stats-grid">
+      <div class="stat-box">
+        <div class="stat-val">8</div>
+        <div class="stat-label">Вулиць на моніторингу</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val">190</div>
+        <div class="stat-label">Будинків перевірено</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val green">0</div>
+        <div class="stat-label">Активних аварій</div>
+      </div>
+    </div>
+
+    
+        <div class="card">
+          <h2>🚨 Де зараз аварії</h2>
+          <div class="ok-box">
+            <span class="ok-icon">🟢</span>
+            <div>
+              <strong>Наразі активних аварійних відключень не зафіксовано.</strong>
+              <p>Електропостачання здійснюється у звичайному режимі або за графіками стабілізаційних відключень.</p>
+            </div>
+          </div>
+        </div>
+
+    <div class="card">
+      <h2>📋 Загальна ситуація по всіх 8 вулицях</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Вулиця</th>
+              <th style="text-align: center;">Будинків</th>
+              <th style="text-align: center;">Статус</th>
+              <th>Деталі</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+        <tr>
+          <td><strong>вул. Малишка Андрія</strong></td>
+          <td style="text-align: center;">41</td>
+          <td style="text-align: center;"><span class="badge badge-green">🟢 Норма</span></td>
+          <td>Аварій немає, світло є</td>
+        </tr>
+        <tr>
+          <td><strong>вул. Солов’яненка Анатолія</strong> <span class='sub-text'>(кол. Бойченка)</span></td>
+          <td style="text-align: center;">23</td>
+          <td style="text-align: center;"><span class="badge badge-green">🟢 Норма</span></td>
+          <td>Аварій немає, світло є</td>
+        </tr>
+        <tr>
+          <td><strong>вул. Миропільська</strong></td>
+          <td style="text-align: center;">35</td>
+          <td style="text-align: center;"><span class="badge badge-green">🟢 Норма</span></td>
+          <td>Аварій немає, світло є</td>
+        </tr>
+        <tr>
+          <td><strong>бул. Дарницький</strong></td>
+          <td style="text-align: center;">28</td>
+          <td style="text-align: center;"><span class="badge badge-green">🟢 Норма</span></td>
+          <td>Аварій немає, світло є</td>
+        </tr>
+        <tr>
+          <td><strong>вул. Шалетт міста</strong> <span class='sub-text'>(Міста Шалетт)</span></td>
+          <td style="text-align: center;">11</td>
+          <td style="text-align: center;"><span class="badge badge-green">🟢 Норма</span></td>
+          <td>Аварій немає, світло є</td>
+        </tr>
+        <tr>
+          <td><strong>вул. Юності</strong></td>
+          <td style="text-align: center;">18</td>
+          <td style="text-align: center;"><span class="badge badge-green">🟢 Норма</span></td>
+          <td>Аварій немає, світло є</td>
+        </tr>
+        <tr>
+          <td><strong>вул. Космічна</strong></td>
+          <td style="text-align: center;">14</td>
+          <td style="text-align: center;"><span class="badge badge-green">🟢 Норма</span></td>
+          <td>Аварій немає, світло є</td>
+        </tr>
+        <tr>
+          <td><strong>вул. Князя Романа Мстиславича</strong> <span class='sub-text'>(кол. Жмаченка)</span></td>
+          <td style="text-align: center;">20</td>
+          <td style="text-align: center;"><span class="badge badge-green">🟢 Норма</span></td>
+          <td>Аварій немає, світло є</td>
+        </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <footer>
+      Дані збираються автоматично кожні 10 хвилин з сайту ДТЕК через GitHub Actions.<br>
+      <a href="active_emergencies.json">JSON аварій</a> • <a href="latest.json">Повний JSON</a> • <a href="status.json">status.json</a> • <a href="README.md">Markdown версія</a>
+    </footer>
+  </div>
+</body>
+</html>
