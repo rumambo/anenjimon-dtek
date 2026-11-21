@@ -1,0 +1,35 @@
+{
+ "version": 1,
+ "generated": "2026-11-21T00:49:24Z",
+ "source_latest": "2026-11-20T21:50Z",
+ "lag_minutes": 179,
+ "window_days": 31,
+ "window_records": 145571,
+ "streets": 1129,
+ "kinds": {
+  "buvet": 138,
+  "cold": 6891,
+  "gas": 557,
+  "heat": 51380,
+  "hot": 14556,
+  "lift": 20357,
+  "light": 1509,
+  "pipes": 1550,
+  "power": 48633
+ },
+ "months": {
+  "2026-10": 54627,
+  "2026-11": 127124
+ },
+ "areas": {
+  "pivnichno-brovarskyi": {
+   "file": "areas/pivnichno-brovarskyi.json",
+   "recent": "areas/pivnichno-brovarskyi-recent.json",
+   "streets": 8,
+   "n": 2457,
+   "n_recent": 104
+  }
+ },
+ "buvets": 182,
+ "source": "КБУ «Контактний центр міста Києва» (1551), data.gov.ua, CC BY 4.0"
+}
